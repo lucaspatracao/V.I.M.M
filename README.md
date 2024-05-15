@@ -29,4 +29,12 @@
 - Abaixo do calendário, terá também a opção de **Criar Nova Tarefa/Compromisso**, caso o aluno queira colocar algo em sua agenda, de forma manual. Lembremos que, ao estar em uma turma, o aluno estará submetido as tarefas/compromissos adicionadas pelo seu professor. No Meio Superior da Tela, a logo do aplicativo.
 
 # Fluxograma 
-- 
+
+# Tela Inicial do Aplicativo:
+
+![image](https://github.com/lucaspatracao/V.I.M.M/assets/166610416/15ae7d8e-732d-44b0-889f-cf1815df4234)
+
+# Opção de Adicionar Tarefas:
+
+![image](https://github.com/lucaspatracao/V.I.M.M/assets/166610416/dc4a6f33-af21-4ac2-a844-d38c12e0b825)
+
