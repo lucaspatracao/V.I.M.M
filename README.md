@@ -30,11 +30,11 @@
 
 # Fluxograma 
 
-# Tela Inicial do Aplicativo:
+**Tela Inicial do Aplicativo:** Aonde os usuários veêm ao **Logar**. Apresenta o teu **Nome Cadastrado**, e mais **Quatro Opções:** *Criação de Salas/Turmas, Visualização da Agenda, Incrementação de Tarefas e Visualização de Tarefas.* Além disso, nos cantos inferiores da Tela, o aplicativo consta com as Opções de: *Perfil e Configurações*
 
 ![image](https://github.com/lucaspatracao/V.I.M.M/assets/166610416/15ae7d8e-732d-44b0-889f-cf1815df4234)
 
-# Opção de Adicionar Tarefas:
+**Opção de Adicionar Tarefas:** Ao pressionar a opção de **Adicionar Tarefas**, uma tela de *Configurações da Tarefa* aparecerá, nela temos as Opções de: *Nomear a tarefa, Qual(is) Turma(s) indicar a Tarefa, Objetivo da Tarefa, Descrição da Tarefa e Prazo da Tarefa*
 
 ![image](https://github.com/lucaspatracao/V.I.M.M/assets/166610416/dc4a6f33-af21-4ac2-a844-d38c12e0b825)
 
