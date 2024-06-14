@@ -1,189 +1,159 @@
-import tkinter as tk
-import customtkinter
-from PIL import ImageTk, Image
+# Importar bibliotecas necessárias
 import sqlite3
-import os
-import google.oauth2
-from google.oauth2 import service_account, id_token
-import msal
-import requests
-import webbrowser
+from customtkinter import *  # Biblioteca para criar interfaces gráficas
+from PIL import Image  # Biblioteca para trabalhar com imagens
+import webbrowser  # Biblioteca para abrir links na internet
+import hashlib  # Biblioteca para criptografar senhas
+from Entrar import App as LoginApp  # Importar a classe App do módulo Entrar
 
-customtkinter.set_appearance_mode("light")
-customtkinter.set_default_color_theme("dark-blue")
+# Constantes
+ARQUIVO_DB = "usuarios.db"  # Nome do arquivo de banco de dados
+NOME_TABELA = "usuarios"  # Nome da tabela de usuários
+FAMILIA_FONTE = "Montserrat"  # Família de fonte usada na interface
+TAMANHO_FONTE_TITULO = 24  # Tamanho da fonte do título
+TAMANHO_FONTE_SUBTITULO = 12  # Tamanho da fonte do subtítulo
+TAMANHO_FONTE_ROTULO = 14  # Tamanho da fonte dos rótulos
+TAMANHO_FONTE_BOTAO = 10  # Tamanho da fonte dos botões
 
-app = customtkinter.CTk()
-app.geometry("1080x720")
-app.title('Cadastro')
+# Funções de banco de dados
+def criar_banco_de_dados():
+    # Cria um banco de dados SQLite se ele não existir
+    conexao = sqlite3.connect(ARQUIVO_DB)  # Conectar ao banco de dados
+    cursor = conexao.cursor()  # Criar um cursor para executar comandos
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {NOME_TABELA} (
+            email TEXT PRIMARY KEY,
+            senha TEXT
+        )
+    """)  # Criar tabela de usuários se não existir
+    conexao.close()  # Fechar conexão com o banco de dados
 
-GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE'
-MICROSOFT_CLIENT_ID = 'YOUR_MICROSOFT_CLIENT_ID_HERE'
+def armazenar_usuario(email, senha):
+    # Armazena um usuário no banco de dados
+    conexao = sqlite3.connect(ARQUIVO_DB)  # Conectar ao banco de dados
+    cursor = conexao.cursor()  # Criar um cursor para executar comandos
+    cursor.execute(f"SELECT 1 FROM {NOME_TABELA} WHERE email =?", (email,))  # Verificar se o email já existe
+    if cursor.fetchone():  # Se o email já existe
+        print("Email já cadastrado!")  # Mostrar mensagem de erro
+    else:
+        cursor.execute(f"INSERT INTO {NOME_TABELA} (email, senha) VALUES (?,?)", (email, hashlib.sha256(senha.encode()).hexdigest()))  # Inserir usuário no banco de dados
+        conexao.commit()  # Confirmar alterações
+    conexao.close()  # Fechar conexão com o banco de dados
 
-def register_user():
-    email = email_entry.get()
-    password = password_entry.get()
-    cargo = cargo_entry.get()
+# Classe App
+class App(CTk):
+    def __init__(self):
+        super().__init__()  # Inicializar a classe pai
+        self.geometry("1280x800")  # Definir tamanho da janela
+        self.resizable(True, True)  # Permitir redimensionamento da janela
 
-    if not all([email, password, cargo]):
-        error_label.configure(text="Preencha todos os campos!")
-        return
+        # Criar imagem de fundo
+        background_image = CTkImage(light_image=Image.open("V.I.M.M\\img\\fundoroxo.jpg"), size=(1920, 1080))
+        background_label = CTkLabel(master=self, image=background_image)
+        background_label.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-    conn = sqlite3.connect('usuarios.db')
-    cursor = conn.cursor()
+        # Criar frame de cadastro
+        self.frame_cadastro = CTkFrame(master=self, fg_color="#ffffff", corner_radius=10)
+        self.frame_cadastro.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.5, relheight=0.6)
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios
-                      (email TEXT PRIMARY KEY, password TEXT, cargo TEXT)''')
+        self.criar_widgets()  # Criar widgets de cadastro
 
-    cursor.execute("INSERT INTO usuarios (email, password, cargo) VALUES (?,?,?)", (email, password, cargo))
-    conn.commit()
+    def criar_widgets(self):
+        # Criar widgets de cadastro
+        self.rotulo_titulo = CTkLabel(master=self.frame_cadastro, text="Bem-Vindo!", text_color="#601E88", anchor="center", justify="center", font=(FAMILIA_FONTE, TAMANHO_FONTE_TITULO))
+        self.rotulo_titulo.place(relx=0.5, rely=0.2, anchor="center")
 
-    error_label.configure(text="Cadastro realizado com sucesso!")
+        self.rotulo_subtitulo = CTkLabel(master=self.frame_cadastro, text="Cadastre-se com sua conta", text_color="#7E7E7E", anchor="center", justify="center", font=(FAMILIA_FONTE, TAMANHO_FONTE_SUBTITULO))
+        self.rotulo_subtitulo.place(relx=0.5, rely=0.3, anchor="center")
 
-    conn.close()
+        # Criar ícone de email
+        self.icone_email = CTkImage(dark_image=Image.open("V.I.M.M\\img\\email-icon.png"), light_image=Image.open("V.I.M.M\\img\\email-icon.png"), size=(20,20))
+        self.rotulo_email = CTkLabel(master=self.frame_cadastro, text="  Email:", text_color="#601E88", anchor="center", justify="left", font=(FAMILIA_FONTE, TAMANHO_FONTE_ROTULO), image=self.icone_email, compound="left")
+        self.rotulo_email.place(relx=0.1, rely=0.4, anchor="w")
 
-def register_user_google():
-    # Crie um flow de autenticação com o client ID
-    flow = service_account.Credentials.from_service_account_file(
-        'path/to/your/service_account_key.json',
-        scopes=['openid', 'email', 'profile']
-    )
+        # Criar entrada de email
+        self.entrada_email = CTkEntry(master=self.frame_cadastro, width=250, height=30, corner_radius=10, fg_color="#EEEEEE", text_color="#7E7E7E", font=(FAMILIA_FONTE, 10))
+        self.entrada_email.place(relx=0.5, rely=0.4, anchor="center")
 
-    # Redirecione o usuário para a página de autenticação do Google
-    auth_url, _ = flow.authorization_url()
-    webbrowser.open(auth_url, new=2)  # Abre a URL em um novo navegador
+        # Criar ícone de senha
+        self.icone_senha = CTkImage(dark_image=Image.open("V.I.M.M\\img\\password-icon.png"), light_image=Image.open("V.I.M.M\\img\\password-icon.png"), size=(17,17))
+        self.rotulo_senha = CTkLabel(master=self.frame_cadastro, text="  Senha:", text_color="#601E88", anchor="center", justify="left", font=(FAMILIA_FONTE, TAMANHO_FONTE_ROTULO), image=self.icone_senha, compound="left")
+        self.rotulo_senha.place(relx=0.1, rely=0.5, anchor="w")
 
-    # Aguarde o usuário autorizar o acesso
-    auth_response = input("Enter the authorization code: ")
+        # Criar entrada de senha
+        self.entrada_senha = CTkEntry(master=self.frame_cadastro, width=250, height=30, corner_radius=10, fg_color="#EEEEEE", text_color="#7E7E7E", font=(FAMILIA_FONTE, 10), show="*")
+        self.entrada_senha.place(relx=0.5, rely=0.5, anchor="center")
 
-    # Troque o código de autorização por um token de acesso
-    token_response = flow.fetch_token(code=auth_response)
-    credentials = token_response.credentials
+        # Criar botão de cadastro
+        self.botao_cadastrar = CTkButton(master=self.frame_cadastro, text="Cadastre-se", fg_color="#601E88", hover_color="#601E88", font=(FAMILIA_FONTE, TAMANHO_FONTE_BOTAO), text_color="#FFFFFF", width=180, command=lambda: self.cadastrar_usuario())
+        self.botao_cadastrar.place(relx=0.5, rely=0.6, anchor="center")
 
-    # Verifique o token de acesso
-    request = requests.Request()
-    id_info = id_token.verify_oauth2_token(
-        token_response.id_token,
-        request,
-        audience=GOOGLE_CLIENT_ID
-    )
+        # Criar botão de login com Microsoft
+        self.icone_microsoft = CTkImage(dark_image=Image.open("V.I.M.M\\img\\microsoft-logo.png"), light_image=Image.open("V.I.M.M\\img\\microsoft-logo.png"), size=(20,20))
+        self.botao_microsoft = CTkButton(master=self.frame_cadastro, text="Cadastrar-se com Microsoft", fg_color="#EEEEEE", hover_color="#EEEEEE", font=(FAMILIA_FONTE, TAMANHO_FONTE_BOTAO), text_color="#601E88", width=180, image=self.icone_microsoft, command=lambda: self.login_com_microsoft())
+        self.botao_microsoft.place(relx=0.5, rely=0.7, anchor="center")
 
-    # Extrai as informações do usuário do token de acesso
-    email = id_info['email']
-    name = id_info['name']
+        # Criar label de erro
+        self.rotulo_erro = CTkLabel(master=self.frame_cadastro, text="", text_color="red", anchor="center", justify="center", font=(FAMILIA_FONTE, 10))
+        self.rotulo_erro.place(relx=0.5, rely=0.9, anchor="center")
 
-    # Crie um novo usuário com as informações do Google
-    conn = sqlite3.connect('usuarios.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO usuarios (email, password, cargo) VALUES (?,?,?)", (email, '', ''))
-    conn.commit()
-    conn.close()
+    def cadastrar_usuario(self):
+        # Obter email e senha do usuário
+        email = self.entrada_email.get()
+        senha = self.entrada_senha.get()
 
-    error_label.configure(text="Cadastro realizado com sucesso!")
+        # Verificar se os campos estão preenchidos
+        if email and senha:
+            # Verificar se o email já existe
+            if self.verificar_usuario_existe(email):
+                self.rotulo_erro.configure(text="Email já cadastrado! Entre.")
+                tela_login = LoginApp()
+                tela_login.mainloop()
+                self.destroy()
+            # Verificar se o email e senha são válidos
+            elif self.validar_email(email) and self.validar_senha(senha):
+                armazenar_usuario(email, senha)
+                self.rotulo_erro.configure(text="Usuário cadastrado com sucesso!")
+            else:
+                self.rotulo_erro.configure(text="Email ou senha inválidos!")
+        else:
+            self.rotulo_erro.configure(text="Preencha todos os campos!")
 
-def register_user_microsoft():
-    # Crie um aplicativo de autenticação com o client ID
-    app = msal.PublicClientApplication(
-        client_id=MICROSOFT_CLIENT_ID,
-        authority="https://login.microsoftonline.com/consumers"
-    )
+    def login_com_microsoft(self):
+        # Abrir link de login com Microsoft
+        webbrowser.open("https://account.microsoft.com/account?lang=pt-br")
 
-    # Redirecione o usuário para a página de autenticação da Microsoft
-    flow = app.acquire_token_interactive(scopes=["openid", "email", "profile"])
-    auth_url = flow.authorization_uri()
-    webbrowser.open(auth_url, new=2)  # Abre a URL em um novo navegador
+    def verificar_usuario_existe(self, email):
+        # Verificar se o email já existe no banco de dados
+        conexao = sqlite3.connect(ARQUIVO_DB)
+        cursor = conexao.cursor()
+        cursor.execute(f"SELECT 1 FROM {NOME_TABELA} WHERE email =?", (email,))
+        if cursor.fetchone():
+            return True
+        return False
 
-    # Aguarde o usuário autorizar o acesso
-    result = flow.execute_pending()
+    def validar_email(self, email):
+        # Verificar se o email é válido
+        if "@" in email and email.count("@") == 1:
+            return True
+        return False
 
-    # Extrai as informações do usuário do token de acesso
-    email = result['id_token_claims']['email']
-    name = result['id_token_claims']['name']
+    def validar_senha(self, senha):
+        # Verificar se a senha é válida
+        if len(senha) >= 8:
+            return True
+        return False
 
-    # Crie um novo usuário com as informações da Microsoft
-    conn = sqlite3.connect('usuarios.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO usuarios (email, password, cargo) VALUES (?,?,?)", (email, '', ''))
-    conn.commit()
-    conn.close()
+    def abrir_login(self):
+        # Fechar a janela atual e abrir a janela de login
+        self.destroy()
+        tela_login = LoginApp()
+        tela_login.mainloop()
 
-    error_label.configure(text="Cadastro realizado com sucesso!")
-
-img1 = ImageTk.PhotoImage(Image.open("D:\\GITHUB\\V.I.M.M\\V.I.M.M\img\\fundobranco.jpg"))
-l1 = customtkinter.CTkLabel(master=app, image=img1)
-l1.pack(fill="both", expand=True)
-
-frame = customtkinter.CTkFrame(master=l1, width=320, height=360, corner_radius=15)
-frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-l2 = customtkinter.CTkLabel(master=frame, text="Cadastro", font=('Century Gothic', 20))
-l2.place(x=50, y=45)
-
-email_label = customtkinter.CTkLabel(master=frame, text="Email:", font=('Century Gothic', 14))
-email_label.place(x=50, y=110)
-
-email_entry = customtkinter.CTkEntry(master=frame, 
-                                     width=200, 
-                                     height=30, 
-                                     border_width=1, 
-                                     corner_radius=10)
-email_entry.place(x=50, y=140)
-
-password_label = customtkinter.CTkLabel(master=frame, 
-                                        text="Senha:", 
-                                        font=('Century Gothic', 14))
-password_label.place(x=50, y=180)
-
-password_entry = customtkinter.CTkEntry(master=frame, 
-                                        width=200, 
-                                        height=30, 
-                                        border_width=1, 
-                                        corner_radius=10, 
-                                        show="*")
-password_entry.place(x=50, y=210)
-
-cargo_label = customtkinter.CTkLabel(master=frame, 
-                                     text="Cargo:", 
-                                     font=('Century Gothic', 14))
-cargo_label.place(x=50, y=250)
-
-cargo_entry = customtkinter.CTkEntry(master=frame, 
-                                     width=200, 
-                                     height=30, 
-                                     border_width=1, 
-                                     corner_radius=10)
-cargo_entry.place(x=50, y=280)
-
-register_button = customtkinter.CTkButton(master=frame, 
-                                          text="Cadastrar", 
-                                          command=register_user, 
-                                          width=100, 
-                                          height=30, 
-                                          border_width=1, 
-                                          corner_radius=10)
-register_button.place(x=50, y=320)
-
-google_button = customtkinter.CTkButton(master=frame, 
-                                        text="Cadastrar com Google", 
-                                        command=register_user_google, 
-                                        width=150, 
-                                        height=30, 
-                                        border_width=1, 
-                                        corner_radius=10)
-google_button.place(x=50, y=360)
-
-microsoft_button = customtkinter.CTkButton(master=frame, 
-                                           text="Cadastrar com Microsoft", 
-                                           command=register_user_microsoft, 
-                                           width=150, 
-                                           height=30, 
-                                           border_width=1, 
-                                           corner_radius=10)
-microsoft_button.place(x=50, y=400)
-
-error_label = customtkinter.CTkLabel(master=frame, 
-                                     text="", 
-                                     font=('Century Gothic', 12), 
-                                     text_color="red")
-error_label.place(x=50, y=440)
-
-app.mainloop()
+if __name__ == "__main__":
+    # Criar banco de dados se não existir
+    criar_banco_de_dados()
+    # Criar aplicação
+    app = App()
+    # Iniciar aplicação
+    app.mainloop()
